@@ -19,11 +19,30 @@ function getClientId(request: NextRequest): string {
   return realIp || 'unknown';
 }
 
+function getProjectRoot(): string {
+  // Try multiple strategies to find the project root
+  // In Vercel/serverless, __dirname might be in .next/server/app/api/...
+  let currentDir = __dirname;
+  
+  // Walk up until we find package.json or node_modules
+  while (currentDir !== path.dirname(currentDir)) {
+    const packageJsonPath = path.join(currentDir, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      return currentDir;
+    }
+    currentDir = path.dirname(currentDir);
+  }
+  
+  // Fallback to process.cwd()
+  return process.cwd();
+}
+
 function buildKeywordIndexFromKeywords(): KeywordIndex {
-  const keywordsPath = path.resolve(process.cwd(), config.keywordsPath);
+  const projectRoot = getProjectRoot();
+  const keywordsPath = path.resolve(projectRoot, config.keywordsPath);
   if (!fs.existsSync(keywordsPath)) {
     throw new Error(
-      'Keywords file not found. Please ensure the keywords file exists.'
+      `Keywords file not found at ${keywordsPath}. Please ensure the keywords file exists.`
     );
   }
 
@@ -45,7 +64,8 @@ function loadKeywordIndex(): KeywordIndex {
     return keywordIndexCache;
   }
 
-  const indexPath = path.resolve(process.cwd(), config.keywordIndexPath);
+  const projectRoot = getProjectRoot();
+  const indexPath = path.resolve(projectRoot, config.keywordIndexPath);
   if (!fs.existsSync(indexPath)) {
     if (!config.openaiApiKey) {
       keywordIndexCache = buildKeywordIndexFromKeywords();
