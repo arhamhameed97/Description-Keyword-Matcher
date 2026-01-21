@@ -9,17 +9,26 @@ import { getUsageSnapshot } from '@/lib/usageTracker';
 let keywordIndexCache: KeywordIndex | null = null;
 
 function getProjectRoot(): string {
-  // Try multiple strategies to find the project root
-  // In Vercel/serverless, __dirname might be in .next/server/app/api/...
-  let currentDir = __dirname;
+  // In Vercel/serverless, process.cwd() should work, but let's try multiple strategies
+  let root = process.cwd();
   
-  // Walk up until we find package.json or node_modules
-  while (currentDir !== path.dirname(currentDir)) {
+  // Check if data directory exists at current working directory
+  const dataDir = path.join(root, 'data');
+  if (fs.existsSync(dataDir)) {
+    return root;
+  }
+  
+  // Try walking up from current directory to find package.json
+  let currentDir = root;
+  for (let i = 0; i < 5; i++) {
     const packageJsonPath = path.join(currentDir, 'package.json');
-    if (fs.existsSync(packageJsonPath)) {
+    const dataPath = path.join(currentDir, 'data');
+    if (fs.existsSync(packageJsonPath) && fs.existsSync(dataPath)) {
       return currentDir;
     }
-    currentDir = path.dirname(currentDir);
+    const parent = path.dirname(currentDir);
+    if (parent === currentDir) break;
+    currentDir = parent;
   }
   
   // Fallback to process.cwd()
