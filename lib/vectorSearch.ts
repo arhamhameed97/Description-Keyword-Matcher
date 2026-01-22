@@ -9,6 +9,9 @@ export interface KeywordEntry {
 
 export interface KeywordIndex {
   keywords: KeywordEntry[];
+  embeddingProvider?: string;
+  embeddingModel?: string;
+  embeddingDimensions?: number;
 }
 
 export function cosineSimilarity(vecA: number[], vecB: number[]): number {
@@ -39,6 +42,34 @@ export function findTopSimilar(
   keywordIndex: KeywordIndex,
   topN: number = config.shortlistSize
 ): KeywordEntry[] {
+  const firstEmbedding = keywordIndex.keywords.find(
+    (entry) => entry.embedding && entry.embedding.length > 0
+  )?.embedding;
+
+  const expectedDimensions =
+    keywordIndex.embeddingDimensions ||
+    (firstEmbedding ? firstEmbedding.length : 0);
+
+  if (!firstEmbedding || expectedDimensions === 0) {
+    throw new Error('Keyword index does not contain embeddings.');
+  }
+
+  if (queryEmbedding.length !== expectedDimensions) {
+    throw new Error(
+      `Embedding dimension mismatch: query=${queryEmbedding.length}, index=${expectedDimensions}. ` +
+        'Rebuild the keyword index using the same embedding model as the current API configuration.'
+    );
+  }
+
+  const inconsistentEntry = keywordIndex.keywords.find(
+    (entry) => entry.embedding.length !== firstEmbedding.length
+  );
+  if (inconsistentEntry) {
+    throw new Error(
+      'Keyword index has inconsistent embedding dimensions. Rebuild the keyword index.'
+    );
+  }
+
   const similarities = keywordIndex.keywords.map((entry) => ({
     entry,
     similarity: cosineSimilarity(queryEmbedding, entry.embedding),

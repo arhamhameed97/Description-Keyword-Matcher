@@ -11,7 +11,14 @@ export async function embedText(text: string): Promise<number[]> {
     throw new Error('No AI API key is set');
   }
 
-  if (config.geminiApiKey && !config.openaiApiKey) {
+  const provider =
+    config.embeddingProvider ||
+    (config.geminiApiKey && !config.openaiApiKey ? 'gemini' : 'openai');
+
+  if (provider === 'gemini') {
+    if (!config.geminiApiKey) {
+      throw new Error('EMBEDDING_PROVIDER is set to gemini but GEMINI_API_KEY is missing');
+    }
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${config.geminiEmbeddingModel}:embedContent?key=${config.geminiApiKey}`,
       {
@@ -39,9 +46,11 @@ export async function embedText(text: string): Promise<number[]> {
     return values;
   }
 
-  const openai = new OpenAI({
-    apiKey: config.openaiApiKey,
-  });
+  if (!config.openaiApiKey) {
+    throw new Error('EMBEDDING_PROVIDER is set to openai but OPENAI_API_KEY is missing');
+  }
+
+  const openai = new OpenAI({ apiKey: config.openaiApiKey });
 
   const response = await openai.embeddings.create({
     model: config.embeddingModel,
@@ -56,13 +65,24 @@ export async function embedTexts(texts: string[]): Promise<EmbeddingResult[]> {
     throw new Error('No AI API key is set');
   }
 
-  if (config.geminiApiKey && !config.openaiApiKey) {
+  const provider =
+    config.embeddingProvider ||
+    (config.geminiApiKey && !config.openaiApiKey ? 'gemini' : 'openai');
+
+  if (provider === 'gemini') {
+    if (!config.geminiApiKey) {
+      throw new Error('EMBEDDING_PROVIDER is set to gemini but GEMINI_API_KEY is missing');
+    }
     const results: EmbeddingResult[] = [];
     for (const text of texts) {
       const embedding = await embedText(text);
       results.push({ embedding, text });
     }
     return results;
+  }
+
+  if (!config.openaiApiKey) {
+    throw new Error('EMBEDDING_PROVIDER is set to openai but OPENAI_API_KEY is missing');
   }
 
   const openai = new OpenAI({

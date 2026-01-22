@@ -2,6 +2,9 @@ export const config = {
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
+  embeddingProvider:
+    (process.env.EMBEDDING_PROVIDER as 'openai' | 'gemini' | undefined) ||
+    undefined,
   embeddingModel: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
   geminiEmbeddingModel:
     process.env.GEMINI_EMBEDDING_MODEL || 'text-embedding-004',

@@ -26,12 +26,16 @@ async function buildKeywordIndex() {
       'No AI API key is set. Building keyword index without embeddings.'
     );
 
+    const provider = 'none';
     const keywordIndex: KeywordIndex = {
       keywords: keywordsData.keywords.map((k) => ({
         keyword: k.keyword,
         path: k.path,
         embedding: [],
       })),
+      embeddingProvider: provider,
+      embeddingModel: '',
+      embeddingDimensions: 0,
     };
 
     const outputPath = path.resolve(process.cwd(), config.keywordIndexPath);
@@ -47,6 +51,11 @@ async function buildKeywordIndex() {
   }
 
   console.log('Generating embeddings...');
+  const provider =
+    config.embeddingProvider ||
+    (config.geminiApiKey && !config.openaiApiKey ? 'gemini' : 'openai');
+  const model =
+    provider === 'gemini' ? config.geminiEmbeddingModel : config.embeddingModel;
   const keywordTexts = keywordsData.keywords.map((k) => k.keyword);
   
   // Process in batches to avoid rate limits
@@ -73,6 +82,9 @@ async function buildKeywordIndex() {
         embedding: embedding.embedding,
       };
     }),
+    embeddingProvider: provider,
+    embeddingModel: model,
+    embeddingDimensions: embeddings[0]?.embedding.length || 0,
   };
 
   const outputPath = path.resolve(process.cwd(), config.keywordIndexPath);
